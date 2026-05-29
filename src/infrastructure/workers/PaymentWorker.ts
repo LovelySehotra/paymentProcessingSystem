@@ -221,4 +221,4 @@ export class PaymentWorker {
   }
 }
 
-export const paymentWorker = new PaymentWorker();
+
