@@ -6,6 +6,7 @@ import { idempotencyMiddleware } from '@/interface/middleware/idempotency/idempo
 import { PaymentService } from '@/application/services';
 import { RepositoryFactory } from '@/infrastructure/repositories/GenericRepository';
 import { Payment } from '@/domain/models/Payment';
+import { asyncHandler } from '@/utils/asyncHandler';
 
 const router = Router();
 const paymentRepo = RepositoryFactory.createFull(Payment);
@@ -17,19 +18,26 @@ router.post(
   '/',
   idempotencyMiddleware,
   UseRequestDto(CreatePaymentDto),
-  UseResponseDto(PaymentResponseDto),
-  paymentController.create
+  UseResponseDto(PaymentResponseDto), asyncHandler(
+
+    paymentController.create
+  )
 );
 
 router.get(
   '/:id',
   UseResponseDto(PaymentResponseDto),
-  paymentController.get
+  asyncHandler(
+    paymentController.get
+  )
 );
 
 router.post(
   '/:id/retry',
-  paymentController.retry
+  asyncHandler(
+
+    paymentController.retry
+  )
 );
 
 export const paymentRouter = router;
