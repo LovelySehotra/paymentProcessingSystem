@@ -1,6 +1,5 @@
 
 import { IPayment } from '@/domain/models/Payment';
-import { queueService } from '@/infrastructure/queue/QueueService';
 import { NotFoundError, AppError } from '@/interface/middleware/error/error';
 import { IRepository } from '@/infrastructure/repositories/GenericRepository';
 import { QueueService } from '../Queue/Queue.service';
@@ -58,7 +57,7 @@ export class PaymentService {
       throw new AppError(`Failed to update payment ${id} to RETRYING`, 500);
     }
     // Queue the processing job
-    await queueService.addPaymentJob(id);
+    await this.queueService.addPaymentJob(id);
 
     return updatedPayment;
   }

@@ -1,6 +1,6 @@
 import { Router} from "express";
-import UserRouter from "./user.router";
+import { paymentRouter } from "./payment.router";
 
 const appRouter = Router();
-appRouter.use("/users",UserRouter);
+appRouter.use("/payment", paymentRouter);
 export {appRouter};
