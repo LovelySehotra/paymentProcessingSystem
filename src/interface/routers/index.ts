@@ -1,6 +1,8 @@
-import { Router} from "express";
+import { Router } from "express";
 import { paymentRouter } from "./payment.router";
+import { webhookRouter } from "./webhook.router";
 
 const appRouter = Router();
 appRouter.use("/payment", paymentRouter);
-export {appRouter};
+appRouter.use("/webhooks", webhookRouter);
+export { appRouter };

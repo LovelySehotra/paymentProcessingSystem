@@ -12,6 +12,7 @@ export function getRedis(): Redis {
       password: REDIS_PASSWORD || '',
       lazyConnect: true,
       enableReadyCheck: true,
+      maxRetriesPerRequest: null,
     });
 
     redisClient.on('connect', () => console.log(' Redis connected'));

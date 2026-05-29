@@ -16,7 +16,7 @@ export class CreatePaymentDto {
 
 export class PaymentResponseDto {
   @Expose()
-  @Transform(({ obj }) => (obj._id ? obj._id.toString() : obj.id), { toPlainOnly: true })
+  @Transform(({ obj }) => (obj._id ? obj._id.toString() : obj.id))
   id!: string;
 
   @Expose()
