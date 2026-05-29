@@ -1,2 +1,1 @@
-export * from './Auth/AuthService';
-export * from './Auth/JwtService';
+export * from './Payment/payment.service';
