@@ -3,7 +3,7 @@ export const swaggerDocument = {
   info: {
     title: 'Payment Processing System API',
     version: '1.0.0',
-    description: 'Production-grade, highly available payment processing system using Node.js, Express, PostgreSQL, Redis, BullMQ and Prisma.',
+    description: 'Production-grade, highly available payment processing system using Node.js, Express, MongoDB, Redis, and BullMQ.',
   },
   servers: [
     {
@@ -15,7 +15,7 @@ export const swaggerDocument = {
     '/health': {
       get: {
         summary: 'Check the health status of the application and its downstream services',
-        description: 'Verifies PostgreSQL database connectivity and Redis connection health.',
+        description: 'Verifies MongoDB database connectivity and Redis connection health.',
         responses: {
           200: {
             description: 'System is healthy and fully operational',
@@ -62,7 +62,7 @@ export const swaggerDocument = {
         },
       },
     },
-    '/api/payments': {
+    '/payment': {
       post: {
         summary: 'Initialize a new payment request',
         description: 'Creates a payment in PENDING state and queues it for asynchronous processing. Enforces idempotency via the Idempotency-Key header.',
@@ -75,7 +75,7 @@ export const swaggerDocument = {
               type: 'string',
             },
             description: 'Unique key to identify this request and prevent duplicate processing.',
-            example: '4a6b29f0-21a4-4cc9-b4b3-ea606d09188a',
+            example: '70db82aa-36a2-4ee5-ba2d-f2f3ca8a386f',
           },
         ],
         requestBody: {
@@ -90,7 +90,7 @@ export const swaggerDocument = {
                     type: 'number',
                     minimum: 0.01,
                     description: 'The payment amount (must be positive)',
-                    example: 100.00,
+                    example: 50.00,
                   },
                   currency: {
                     type: 'string',
@@ -111,11 +111,11 @@ export const swaggerDocument = {
                 schema: {
                   type: 'object',
                   properties: {
-                    id: { type: 'string', format: 'uuid', example: '57ab5c41-60ef-4948-818e-606eadf0065a' },
-                    amount: { type: 'number', example: 100 },
+                    id: { type: 'string', pattern: '^[0-9a-fA-F]{24}$', example: '6a195938e43bdb09e0b5e909' },
+                    amount: { type: 'number', example: 50.00 },
                     currency: { type: 'string', example: 'USD' },
                     status: { type: 'string', example: 'PENDING' },
-                    createdAt: { type: 'string', format: 'date-time', example: '2026-05-29T00:00:00.000Z' },
+                    createdAt: { type: 'string', format: 'date-time', example: '2026-05-29T16:15:00.000Z' },
                   },
                 },
               },
@@ -156,7 +156,7 @@ export const swaggerDocument = {
         },
       },
     },
-    '/api/payments/{id}': {
+    '/payment/{id}': {
       get: {
         summary: 'Get payment details by ID',
         description: 'Retrieves current status and details for a payment record.',
@@ -167,10 +167,10 @@ export const swaggerDocument = {
             required: true,
             schema: {
               type: 'string',
-              format: 'uuid',
+              pattern: '^[0-9a-fA-F]{24}$',
             },
-            description: 'The payment ID',
-            example: '57ab5c41-60ef-4948-818e-606eadf0065a',
+            description: 'The MongoDB 24-character hexadecimal payment ID',
+            example: '6a195938e43bdb09e0b5e909',
           },
         ],
         responses: {
@@ -181,17 +181,17 @@ export const swaggerDocument = {
                 schema: {
                   type: 'object',
                   properties: {
-                    id: { type: 'string', format: 'uuid', example: '57ab5c41-60ef-4948-818e-606eadf0065a' },
-                    amount: { type: 'number', example: 100 },
+                    id: { type: 'string', pattern: '^[0-9a-fA-F]{24}$', example: '6a195938e43bdb09e0b5e909' },
+                    amount: { type: 'number', example: 50.00 },
                     currency: { type: 'string', example: 'USD' },
                     status: { type: 'string', example: 'SUCCESS' },
-                    idempotencyKey: { type: 'string', example: '4a6b29f0-21a4-4cc9-b4b3-ea606d09188a' },
-                    externalReferenceId: { type: 'string', example: 'tx_827f3c1b-72ba-42aa-b88a-ec718fa20ac3' },
+                    idempotencyKey: { type: 'string', example: '70db82aa-36a2-4ee5-ba2d-f2f3ca8a386f' },
+                    externalReferenceId: { type: 'string', example: 'tx_fffcaf09a0174876' },
                     failureReason: { type: 'string', nullable: true, example: null },
                     retryCount: { type: 'integer', example: 0 },
                     maxRetries: { type: 'integer', example: 3 },
-                    createdAt: { type: 'string', format: 'date-time', example: '2026-05-29T00:00:00.000Z' },
-                    updatedAt: { type: 'string', format: 'date-time', example: '2026-05-29T00:00:05.000Z' },
+                    createdAt: { type: 'string', format: 'date-time', example: '2026-05-29T16:15:00.000Z' },
+                    updatedAt: { type: 'string', format: 'date-time', example: '2026-05-29T16:15:05.000Z' },
                   },
                 },
               },
@@ -204,7 +204,7 @@ export const swaggerDocument = {
                 schema: {
                   type: 'object',
                   properties: {
-                    message: { type: 'string', example: 'Payment with ID 57ab5c41-60ef-4948-818e-606eadf0065a not found.' },
+                    message: { type: 'string', example: 'Payment with ID 6a195938e43bdb09e0b5e909 not found.' },
                   },
                 },
               },
@@ -213,7 +213,7 @@ export const swaggerDocument = {
         },
       },
     },
-    '/api/payments/{id}/retry': {
+    '/payment/{id}/retry': {
       post: {
         summary: 'Manually retry a failed payment',
         description: 'Resets the retry count and transitions the payment status from FAILED back to RETRYING, queueing a new BullMQ processing job.',
@@ -224,10 +224,10 @@ export const swaggerDocument = {
             required: true,
             schema: {
               type: 'string',
-              format: 'uuid',
+              pattern: '^[0-9a-fA-F]{24}$',
             },
             description: 'The failed payment ID',
-            example: '57ab5c41-60ef-4948-818e-606eadf0065a',
+            example: '6a195938e43bdb09e0b5e909',
           },
         ],
         responses: {
@@ -239,7 +239,7 @@ export const swaggerDocument = {
                   type: 'object',
                   properties: {
                     message: { type: 'string', example: 'Payment retry initiated.' },
-                    id: { type: 'string', format: 'uuid', example: '57ab5c41-60ef-4948-818e-606eadf0065a' },
+                    id: { type: 'string', pattern: '^[0-9a-fA-F]{24}$', example: '6a195938e43bdb09e0b5e909' },
                     status: { type: 'string', example: 'RETRYING' },
                   },
                 },
@@ -253,7 +253,7 @@ export const swaggerDocument = {
                 schema: {
                   type: 'object',
                   properties: {
-                    message: { type: 'string', example: 'Payment 57ab5c41-60ef-4948-818e-606eadf0065a is in status SUCCESS and cannot be manually retried.' },
+                    message: { type: 'string', example: 'Payment 6a195938e43bdb09e0b5e909 is in status SUCCESS and cannot be manually retried.' },
                   },
                 },
               },
@@ -266,7 +266,7 @@ export const swaggerDocument = {
                 schema: {
                   type: 'object',
                   properties: {
-                    message: { type: 'string', example: 'Payment with ID 57ab5c41-60ef-4948-818e-606eadf0065a not found.' },
+                    message: { type: 'string', example: 'Payment with ID 6a195938e43bdb09e0b5e909 not found.' },
                   },
                 },
               },
@@ -275,10 +275,10 @@ export const swaggerDocument = {
         },
       },
     },
-    '/api/webhooks/payment': {
+    '/webhooks': {
       post: {
         summary: 'Handle gateway webhook callback',
-        description: 'Processes status updates from the external gateway asynchronously. Verifies validity of payload using HMACS-SHA256 signature in X-Gateway-Signature header.',
+        description: 'Processes status updates from the external gateway asynchronously. Verifies validity of payload using HMAC-SHA256 signature in X-Gateway-Signature header.',
         parameters: [
           {
             name: 'X-Gateway-Signature',
@@ -304,10 +304,10 @@ export const swaggerDocument = {
                     type: 'object',
                     required: ['paymentId', 'externalReferenceId', 'status', 'amount', 'currency'],
                     properties: {
-                      paymentId: { type: 'string', format: 'uuid', example: '57ab5c41-60ef-4948-818e-606eadf0065a' },
-                      externalReferenceId: { type: 'string', example: 'tx_827f3c1b-72ba-42aa-b88a-ec718fa20ac3' },
+                      paymentId: { type: 'string', pattern: '^[0-9a-fA-F]{24}$', example: '6a195938e43bdb09e0b5e909' },
+                      externalReferenceId: { type: 'string', example: 'tx_fffcaf09a0174876' },
                       status: { type: 'string', enum: ['SUCCESS', 'FAILED'], example: 'SUCCESS' },
-                      amount: { type: 'number', example: 100.00 },
+                      amount: { type: 'number', example: 50.00 },
                       currency: { type: 'string', example: 'USD' },
                       failureReason: { type: 'string', nullable: true, example: null },
                     },
