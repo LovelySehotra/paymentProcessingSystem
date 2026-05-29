@@ -164,3 +164,11 @@ export const notFoundHandler = (
   );
   next(error);
 };
+export class GatewayError extends Error {
+  public isRetryable: boolean;
+  constructor(message: string, isRetryable: boolean) {
+    super(message);
+    this.isRetryable = isRetryable;
+    this.name = 'GatewayError';
+  }
+}
