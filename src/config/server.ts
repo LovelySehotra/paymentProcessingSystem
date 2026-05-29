@@ -4,6 +4,8 @@ import { Server as HttpServer } from 'http';
 import { connectToDatabase, disconnectFromDatabase } from '@/infrastructure';
 import { PaymentWorker } from '@/infrastructure/workers/PaymentWorker';
 import logger from './logger';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerDocument } from './swagger.config';
 
 export type AppConfig = {
   port?: number | string;
@@ -19,6 +21,7 @@ export class Server {
     this.paymentWorker = new PaymentWorker();
     this.app = express();
     this.app.use(express.json());
+    this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
     this.app.use('/api', appRouter);
     this.setupGracefulShutdown();
   }
@@ -30,7 +33,7 @@ export class Server {
       console.log(` Server is running on port ${port}`);
       console.log(` API available at http://localhost:${port}/api`);
     });
-  
+
   }
   async stop(): Promise<void> {
     console.log(' Shutting down server...');

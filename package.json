@@ -38,7 +38,8 @@
     "ts-node": "10.9.1",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.43.0"
+    "typescript-eslint": "^8.43.0",
+    "@types/swagger-ui-express": "^4.1.6"
   },
   "dependencies": {
     "bullmq": "^5.8.1",
@@ -54,6 +55,7 @@
     "mongoose": "^8.7.2",
     "node-fetch": "^2.7.0",
     "pino": "^9.5.0",
+    "swagger-ui-express": "^5.0.0",
     "reflect-metadata": "^0.2.2"
   }
 }
