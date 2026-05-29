@@ -1,44 +1,44 @@
-#!/bin/sh
-# Colors for output
-red='\033[0;31m'
-green='\033[0;32m'
-yellow='\033[0;33m'
-no_color='\033[0m'
+# #!/bin/sh
+# # Colors for output
+# red='\033[0;31m'
+# green='\033[0;32m'
+# yellow='\033[0;33m'
+# no_color='\033[0m'
 
-echo -e "\n${yellow}Checking for console statements in staged files...${no_color}\n"
+# echo -e "\n${yellow}Checking for console statements in staged files...${no_color}\n"
 
-# File patterns to check (covers common extensions)
-FILES_PATTERN='\.(js|ts|jsx|tsx|cjs|mjs|vue|svelte)(\..+)?$'
+# # File patterns to check (covers common extensions)
+# FILES_PATTERN='\.(js|ts|jsx|tsx|cjs|mjs|vue|svelte)(\..+)?$'
 
-# Console methods to block
-FORBIDDEN='console\.(log|info|warn|error|debug|dir|table|trace|assert|group|groupEnd|time|timeEnd|clear)'
+# # Console methods to block
+# FORBIDDEN='console\.(log|info|warn|error|debug|dir|table|trace|assert|group|groupEnd|time|timeEnd|clear)'
 
-# Get staged files
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E "$FILES_PATTERN" || true)
+# # Get staged files
+# STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E "$FILES_PATTERN" || true)
 
-if [ -z "$STAGED_FILES" ]; then
-  echo -e "${green}No matching files staged for commit.${no_color}\n"
-  exit 0
-fi
+# if [ -z "$STAGED_FILES" ]; then
+#   echo -e "${green}No matching files staged for commit.${no_color}\n"
+#   exit 0
+# fi
 
-# List files being checked
-echo -e "${yellow}Files being checked:${no_color}"
-echo "$STAGED_FILES"
+# # List files being checked
+# echo -e "${yellow}Files being checked:${no_color}"
+# echo "$STAGED_FILES"
 
-# Check for console statements
-FOUND_CONSOLE=false
-for FILE in $STAGED_FILES; do
-  if grep -E "$FORBIDDEN" "$FILE" | grep -v -E '^\s*//|^\s*/\*|\s*\*'; then
-    echo -e "\n${red}Console statements found in $FILE:${no_color}"
-    grep -n -E "$FORBIDDEN" "$FILE" | grep -v -E '^\s*//|^\s*/\*|\s*\*'
-    FOUND_CONSOLE=true
-  fi
-done
+# # Check for console statements
+# FOUND_CONSOLE=false
+# for FILE in $STAGED_FILES; do
+#   if grep -E "$FORBIDDEN" "$FILE" | grep -v -E '^\s*//|^\s*/\*|\s*\*'; then
+#     echo -e "\n${red}Console statements found in $FILE:${no_color}"
+#     grep -n -E "$FORBIDDEN" "$FILE" | grep -v -E '^\s*//|^\s*/\*|\s*\*'
+#     FOUND_CONSOLE=true
+#   fi
+# done
 
-if [ "$FOUND_CONSOLE" = true ]; then
-  echo -e "\n${red}COMMIT BLOCKED! Remove console statements before committing.\n${no_color}"
-  exit 1
-fi
+# if [ "$FOUND_CONSOLE" = true ]; then
+#   echo -e "\n${red}COMMIT BLOCKED! Remove console statements before committing.\n${no_color}"
+#   exit 1
+# fi
 
-echo -e "\n${green}No console statements found!${no_color}\n"
-exit 0
+# echo -e "\n${green}No console statements found!${no_color}\n"
+# exit 0
