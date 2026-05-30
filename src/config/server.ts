@@ -21,6 +21,7 @@ export class Server {
     this.paymentWorker = new PaymentWorker();
     this.app = express();
     this.app.use(express.json());
+    this.app.use(express.static('public'));
     this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
     this.app.use('/api', appRouter);
     this.setupGracefulShutdown();
