@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Gateway - Developer Sandbox</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- CryptoJS for Webhook HMAC Signature Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --panel-bg: rgba(22, 29, 48, 0.7);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-color: #e2e8f0;
+      --text-muted: #94a3b8;
+      
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --purple: #8b5cf6;
+      
+      --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.1) 0px, transparent 50%);
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Layout */
+    header {
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1.25rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand i {
+      color: var(--primary);
+      font-size: 1.75rem;
+      filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
+    }
+
+    .brand h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 0.5rem 0.85rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      border: 1px solid var(--border-color);
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--text-muted);
+    }
+
+    .status-dot.active {
+      background-color: var(--success);
+      box-shadow: 0 0 10px var(--success);
+      animation: pulse 1.5s infinite alternate;
+    }
+
+    .status-dot.inactive {
+      background-color: var(--danger);
+      box-shadow: 0 0 10px var(--danger);
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(1.3); opacity: 1; }
+    }
+
+    .config-inputs {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .config-field {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .config-field label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .input-flat {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.4rem 0.75rem;
+      color: white;
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      transition: all 0.2s ease;
+    }
+
+    .input-flat:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    .main-container {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1.25fr;
+      padding: 2rem;
+      gap: 2rem;
+      max-width: 1600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    @media (max-width: 1024px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.5rem;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      position: relative;
+    }
+
+    .panel-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 0.75rem;
+    }
+
+    .panel-title i {
+      color: var(--primary);
+    }
+
+    /* Forms */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-group label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .input-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .input-main {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      color: white;
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
+    }
+
+    .input-main:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+    }
+
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.25rem;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Columns Setup */
+    .left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    /* Response / Output Block */
+    .response-container {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      position: relative;
+    }
+
+    .response-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .response-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+    }
+
+    .btn-copy {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 0.25rem;
+    }
+
+    .btn-copy:hover {
+      color: white;
+    }
+
+    pre {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 200px;
+    }
+
+    /* Active Registry List */
+    .registry-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .registry-controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+
+    .checkbox-container input {
+      cursor: pointer;
+    }
+
+    .payments-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      max-height: 480px;
+      overflow-y: auto;
+      padding-right: 0.25rem;
+    }
+
+    .payment-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .payment-card:hover {
+      border-color: rgba(59, 130, 246, 0.4);
+      background: rgba(59, 130, 246, 0.02);
+    }
+
+    .payment-card.selected {
+      border-color: var(--primary);
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .payment-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .payment-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .payment-id {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .payment-idempotency {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .payment-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    /* Badges */
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.6rem;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      text-transform: uppercase;
+    }
+
+    .badge-pending {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .badge-processing {
+      background: rgba(59, 130, 246, 0.1);
+      color: var(--primary);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .badge-success {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .badge-failed {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .badge-retrying {
+      background: rgba(139, 92, 246, 0.1);
+      color: var(--purple);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    .spinner-small {
+      width: 12px;
+      height: 12px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .pulse-animation {
+      animation: pulse-op 1.2s infinite alternate;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse-op {
+      from { opacity: 0.6; }
+      to { opacity: 1; }
+    }
+
+    /* Action triggers inside list */
+    .btn-action-sm {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.35rem 0.6rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: var(--text-color);
+      transition: all 0.15s ease;
+    }
+
+    .btn-action-sm:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .empty-state {
+      padding: 3rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      border: 1px dashed var(--border-color);
+      border-radius: 8px;
+    }
+
+    /* Logs Terminal */
+    .logs-panel {
+      grid-column: 1 / span 2;
+    }
+
+    @media (max-width: 1024px) {
+      .logs-panel {
+        grid-column: 1;
+      }
+    }
+
+    .logs-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logs-terminal {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      height: 250px;
+      overflow-y: auto;
+      padding: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .log-entry {
+      display: flex;
+      gap: 1rem;
+      line-height: 1.4;
+      animation: slide-in 0.15s ease-out;
+    }
+
+    @keyframes slide-in {
+      from { transform: translateY(5px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .log-time {
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .log-method {
+      font-weight: 700;
+      flex-shrink: 0;
+      width: 60px;
+    }
+
+    .log-method.get { color: var(--primary); }
+    .log-method.post { color: var(--success); }
+    .log-method.webhook { color: var(--purple); }
+    .log-method.error { color: var(--danger); }
+
+    .log-message {
+      color: #cbd5e1;
+      word-break: break-all;
+    }
+
+    .log-status {
+      font-weight: 600;
+    }
+    .log-status.success { color: var(--success); }
+    .log-status.client-error { color: var(--warning); }
+    .log-status.server-error { color: var(--danger); }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <i class="fa-solid fa-credit-card"></i>
+      <h1>Payment Gateway Sandbox</h1>
+    </div>
+    
+    <div class="connection-status">
+      <div class="status-pill">
+        <div id="health-dot" class="status-dot"></div>
+        <span id="health-text">API Checking...</span>
+      </div>
+      
+      <div class="config-inputs">
+        <div class="config-field">
+          <label for="base-url">API URL</label>
+          <input type="text" id="base-url" class="input-flat" value="http://localhost:1209/api">
+        </div>
+        <div class="config-field">
+          <label for="webhook-secret">Webhook Secret</label>
+          <input type="password" id="webhook-secret" class="input-flat" value="super-secret-webhook-signing-key">
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Content Grid -->
+  <div class="main-container">
+    
+    <!-- Left Column: creation and dispatch tools -->
+    <div class="left-col">
+      
+      <!-- Payment Creation -->
+      <div class="panel">
+        <div class="panel-title">
+          <i class="fa-solid fa-circle-plus"></i>
+          Create Payment Intent (POST /payment)
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="payment-amount">Amount</label>
+            <input type="number" id="payment-amount" class="input-main" min="1" step="0.01" value="50.00">
+          </div>
+          <div class="form-group">
+            <label for="payment-currency">Currency</label>
+            <input type="text" id="payment-currency" class="input-main" placeholder="USD" value="USD" maxlength="3">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="payment-idempotency">Idempotency Key</label>
+          <div class="input-group">
+            <input type="text" id="payment-idempotency" class="input-main" placeholder="Unique Idempotency Key">
+            <button id="btn-gen-idempotency" class="btn btn-secondary" title="Generate New Key">
+              <i class="fa-solid fa-arrows-rotate"></i>
+            </button>
+          </div>
+        </div>
+
+        <button id="btn-submit-payment" class="btn">
+          <i class="fa-solid fa-paper-plane"></i> Submit Payment
+        </button>
+
+        <!-- Response Window -->
+        <div class="response-container">
+          <div class="response-header">
+            <span class="response-label">Creation Response</span>
+            <button id="btn-copy-response" class="btn-copy" title="Copy Response">
+              <i class="fa-regular fa-copy"></i>
+            </button>
+          </div>
+          <pre id="response-block">Waiting for request...</pre>
+        </div>
+      </div>
+
+      <!-- Webhook Dispatcher -->
+      <div class="panel">
+        <div class="panel-title">
+          <i class="fa-solid fa-bolt"></i>
+          Mock Gateway Webhook (POST /webhooks)
+        </div>
+        
+        <div class="form-group">
+          <label for="webhook-payment-id">Payment ID (Target)</label>
+          <input type="text" id="webhook-payment-id" class="input-main" placeholder="Select a payment from registry or paste ID">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1.25fr 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label for="webhook-ref">External Reference ID</label>
+            <div class="input-group">
+              <input type="text" id="webhook-ref" class="input-main" placeholder="tx_...">
+              <button id="btn-gen-ref" class="btn btn-secondary" title="Regenerate Reference">
+                <i class="fa-solid fa-rotate"></i>
+              </button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="webhook-status">Webhook Outcome</label>
+            <select id="webhook-status" class="input-main" style="background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color); color: white; border-radius: 8px;">
+              <option value="SUCCESS">SUCCESS</option>
+              <option value="FAILED">FAILED</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" id="webhook-reason-group" style="display: none;">
+          <label for="webhook-reason">Failure Reason</label>
+          <input type="text" id="webhook-reason" class="input-main" value="Gateway processing failed" placeholder="Reason for failure">
+        </div>
+
+        <button id="btn-dispatch-webhook" class="btn" style="background: var(--purple);">
+          <i class="fa-solid fa-paper-plane"></i> Dispatch Signed Webhook
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Right Column: payments registry -->
+    <div class="right-col">
+      
+      <!-- Payments Registry -->
+      <div class="panel" style="flex: 1;">
+        <div class="registry-header">
+          <div class="panel-title" style="border: none; padding: 0;">
+            <i class="fa-solid fa-list-check"></i>
+            Active Payments Registry
+          </div>
+          <div class="registry-controls">
+            <label class="checkbox-container">
+              <input type="checkbox" id="chk-auto-poll" checked>
+              Auto-Poll Status
+            </label>
+            <button id="btn-clear-registry" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+              Clear List
+            </button>
+          </div>
+        </div>
+        
+        <div class="payments-list" id="payments-list">
+          <div class="empty-state">
+            <i class="fa-solid fa-receipt" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+            No payments created yet. Submit a payment to start tracking.
+          </div>
+        </div>
+      </div>
+      
+    </div>
+
+    <!-- Logs Panel -->
+    <div class="panel logs-panel">
+      <div class="logs-header">
+        <div class="panel-title" style="border: none; padding: 0;">
+          <i class="fa-solid fa-terminal"></i>
+          API & Event Log Viewer
+        </div>
+        <button id="btn-clear-logs" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+          Clear Logs
+        </button>
+      </div>
+      <div class="logs-terminal" id="logs-terminal">
+        <div class="log-entry">
+          <span class="log-time">[12:00:00]</span>
+          <span class="log-method post">SYSTEM</span>
+          <span class="log-message">Developer Sandbox initialized. Configure parameters and verify connectivity.</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Config Globals
+    let paymentsRegistry = [];
+    let pollingInterval = null;
+    let selectedPaymentId = '';
+
+    // Elements
+    const elBaseUrl = document.getElementById('base-url');
+    const elWebhookSecret = document.getElementById('webhook-secret');
+    const elHealthDot = document.getElementById('health-dot');
+    const elHealthText = document.getElementById('health-text');
+    
+    const elAmount = document.getElementById('payment-amount');
+    const elCurrency = document.getElementById('payment-currency');
+    const elIdempotency = document.getElementById('payment-idempotency');
+    const elBtnGenIdempotency = document.getElementById('btn-gen-idempotency');
+    const elBtnSubmit = document.getElementById('btn-submit-payment');
+    const elResponseBlock = document.getElementById('response-block');
+    const elBtnCopyResponse = document.getElementById('btn-copy-response');
+
+    const elWebhookPaymentId = document.getElementById('webhook-payment-id');
+    const elWebhookRef = document.getElementById('webhook-ref');
+    const elBtnGenRef = document.getElementById('btn-gen-ref');
+    const elWebhookStatus = document.getElementById('webhook-status');
+    const elWebhookReasonGroup = document.getElementById('webhook-reason-group');
+    const elWebhookReason = document.getElementById('webhook-reason');
+    const elBtnDispatchWebhook = document.getElementById('btn-dispatch-webhook');
+
+    const elPaymentsList = document.getElementById('payments-list');
+    const elChkAutoPoll = document.getElementById('chk-auto-poll');
+    const elBtnClearRegistry = document.getElementById('btn-clear-registry');
+    
+    const elLogsTerminal = document.getElementById('logs-terminal');
+    const elBtnClearLogs = document.getElementById('btn-clear-logs');
+
+    // Helper functions
+    function generateUUID() {
+      return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+      );
+    }
+
+    function addLog(method, message, isError = false, statusCode = null) {
+      const now = new Date();
+      const timeStr = `[${now.toTimeString().split(' ')[0]}]`;
+      
+      let statusHtml = '';
+      if (statusCode) {
+        let statusClass = 'success';
+        if (statusCode >= 400 && statusCode < 500) statusClass = 'client-error';
+        if (statusCode >= 500) statusClass = 'server-error';
+        statusHtml = ` <span class="log-status ${statusClass}">(${statusCode})</span>`;
+      }
+
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `
+        <span class="log-time">${timeStr}</span>
+        <span class="log-method ${isError ? 'error' : method.toLowerCase()}">${method.toUpperCase()}</span>
+        <span class="log-message">${message}${statusHtml}</span>
+      `;
+      elLogsTerminal.appendChild(entry);
+      elLogsTerminal.scrollTop = elLogsTerminal.scrollHeight;
+    }
+
+    // Health check
+    async function checkApiHealth() {
+      const baseUrl = elBaseUrl.value.trim();
+      try {
+        // Just run a check. We'll do a check on /payment/health or dummy payments to see if server is online
+        const response = await fetch(`${baseUrl}/payment/health_check_dummy_id`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        // Even if 404, it means the API server is responding
+        elHealthDot.className = 'status-dot active';
+        elHealthText.innerText = 'API Connected';
+      } catch (err) {
+        // Try another fallback check
+        try {
+          const response = await fetch(`${baseUrl.replace('/api', '')}/`);
+          elHealthDot.className = 'status-dot active';
+          elHealthText.innerText = 'API Connected';
+        } catch (e) {
+          elHealthDot.className = 'status-dot inactive';
+          elHealthText.innerText = 'API Offline';
+        }
+      }
+    }
+
+    // Set initial configuration and bindings
+    elIdempotency.value = generateUUID();
+    elWebhookRef.value = 'tx_' + generateUUID().replace(/-/g, '').substring(0, 16);
+    
+    elBtnGenIdempotency.addEventListener('click', () => {
+      elIdempotency.value = generateUUID();
+    });
+
+    elBtnGenRef.addEventListener('click', () => {
+      elWebhookRef.value = 'tx_' + generateUUID().replace(/-/g, '').substring(0, 16);
+    });
+
+    elWebhookStatus.addEventListener('change', () => {
+      if (elWebhookStatus.value === 'FAILED') {
+        elWebhookReasonGroup.style.display = 'flex';
+      } else {
+        elWebhookReasonGroup.style.display = 'none';
+      }
+    });
+
+    // Copy Response Utility
+    elBtnCopyResponse.addEventListener('click', () => {
+      navigator.clipboard.writeText(elResponseBlock.innerText);
+      const icon = elBtnCopyResponse.querySelector('i');
+      icon.className = 'fa-solid fa-check';
+      setTimeout(() => {
+        icon.className = 'fa-regular fa-copy';
+      }, 1500);
+    });
+
+    // Clear registry
+    elBtnClearRegistry.addEventListener('click', () => {
+      paymentsRegistry = [];
+      renderRegistry();
+      addLog('system', 'Registry cache cleared locally');
+    });
+
+    // Clear logs
+    elBtnClearLogs.addEventListener('click', () => {
+      elLogsTerminal.innerHTML = '';
+      addLog('system', 'Log history cleared');
+    });
+
+    // Submit Payment
+    elBtnSubmit.addEventListener('click', async () => {
+      const amount = parseFloat(elAmount.value);
+      const currency = elCurrency.value.trim().toUpperCase();
+      const idempotencyKey = elIdempotency.value.trim();
+      const baseUrl = elBaseUrl.value.trim();
+
+      if (!amount || amount <= 0) {
+        alert('Please enter an amount greater than 0');
+        return;
+      }
+      if (currency.length !== 3) {
+        alert('Currency must be exactly 3 uppercase letters (e.g. USD)');
+        return;
+      }
+      if (!idempotencyKey) {
+        alert('Please provide an Idempotency Key');
+        return;
+      }
+
+      elBtnSubmit.disabled = true;
+      elBtnSubmit.innerHTML = `<span class="spinner-small"></span> Submitting...`;
+      elResponseBlock.innerText = `Sending POST request...`;
+
+      addLog('post', `Submitting payment of ${amount} ${currency} with Idempotency Key: ${idempotencyKey}`);
+
+      try {
+        const response = await fetch(`${baseUrl}/payment`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey
+          },
+          body: JSON.stringify({ amount, currency })
+        });
+
+        const status = response.status;
+        const data = await response.json();
+
+        elResponseBlock.innerText = JSON.stringify(data, null, 2);
+
+        if (response.ok) {
+          addLog('post', `Payment intent successfully generated`, false, status);
+          
+          // Add to local registry if not already present
+          const existingIdx = paymentsRegistry.findIndex(p => p.id === data.id);
+          if (existingIdx > -1) {
+            paymentsRegistry[existingIdx] = data;
+          } else {
+            paymentsRegistry.unshift(data);
+          }
+          
+          renderRegistry();
+          
+          // Auto select and copy properties to webhook dispatcher
+          selectPayment(data.id);
+          
+          // Auto generate a new key for next payment
+          elIdempotency.value = generateUUID();
+        } else {
+          addLog('error', `Payment submission failed: ${data.message || 'Error'}`, true, status);
+        }
+      } catch (err) {
+        elResponseBlock.innerText = `Network Error: ${err.message}`;
+        addLog('error', `Connection error: ${err.message}`, true);
+      } finally {
+        elBtnSubmit.disabled = false;
+        elBtnSubmit.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Submit Payment`;
+      }
+    });
+
+    // Render registry items
+    function renderRegistry() {
+      if (paymentsRegistry.length === 0) {
+        elPaymentsList.innerHTML = `
+          <div class="empty-state">
+            <i class="fa-solid fa-receipt" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+            No payments created yet. Submit a payment to start tracking.
+          </div>
+        `;
+        return;
+      }
+
+      elPaymentsList.innerHTML = '';
+      paymentsRegistry.forEach(p => {
+        const card = document.createElement('div');
+        card.className = `payment-card ${selectedPaymentId === p.id ? 'selected' : ''}`;
+        card.setAttribute('data-id', p.id);
+        
+        let badgeClass = 'badge-pending';
+        let spinnerHtml = '';
+        
+        if (p.status === 'PENDING') badgeClass = 'badge-pending';
+        if (p.status === 'PROCESSING') {
+          badgeClass = 'badge-processing pulse-animation';
+          spinnerHtml = '<span class="spinner-small"></span>';
+        }
+        if (p.status === 'SUCCESS') badgeClass = 'badge-success';
+        if (p.status === 'FAILED') badgeClass = 'badge-failed';
+        if (p.status === 'RETRYING') {
+          badgeClass = 'badge-retrying pulse-animation';
+          spinnerHtml = '<span class="spinner-small"></span>';
+        }
+
+        const isRetryDisabled = p.status !== 'FAILED';
+
+        card.innerHTML = `
+          <div class="payment-info">
+            <div class="payment-meta">
+              <span>${p.amount.toFixed(2)} ${p.currency}</span>
+              <span class="badge ${badgeClass}">${spinnerHtml} ${p.status}</span>
+            </div>
+            <div class="payment-id">ID: ${p.id}</div>
+            <div class="payment-idempotency">Key: ${p.idempotencyKey}</div>
+            ${p.failureReason ? `<div style="font-size:0.75rem; color:var(--danger); max-width: 300px;">Reason: ${p.failureReason}</div>` : ''}
+            <div style="font-size:0.75rem; color:var(--text-muted);">Attempts: ${p.retryCount} / ${p.maxRetries}</div>
+          </div>
+          <div class="payment-actions">
+            <button class="btn-action-sm btn-refresh" title="Refresh Status">
+              <i class="fa-solid fa-arrows-rotate"></i>
+            </button>
+            <button class="btn-action-sm btn-retry-action" ${isRetryDisabled ? 'disabled' : ''} title="Manual Retry">
+              Retry
+            </button>
+          </div>
+        `;
+
+        card.addEventListener('click', (e) => {
+          // Prevent triggers when clicking actions
+          if (e.target.closest('.btn-action-sm')) return;
+          selectPayment(p.id);
+        });
+
+        card.querySelector('.btn-refresh').addEventListener('click', (e) => {
+          e.stopPropagation();
+          fetchPaymentStatus(p.id);
+        });
+
+        card.querySelector('.btn-retry-action').addEventListener('click', (e) => {
+          e.stopPropagation();
+          retryPayment(p.id);
+        });
+
+        elPaymentsList.appendChild(card);
+      });
+    }
+
+    function selectPayment(id) {
+      selectedPaymentId = id;
+      elWebhookPaymentId.value = id;
+      
+      // Highlight card visually
+      const cards = elPaymentsList.querySelectorAll('.payment-card');
+      cards.forEach(c => {
+        if (c.getAttribute('data-id') === id) {
+          c.classList.add('selected');
+        } else {
+          c.classList.remove('selected');
+        }
+      });
+    }
+
+    // Fetch Payment Status (GET /payment/:id)
+    async function fetchPaymentStatus(id) {
+      const baseUrl = elBaseUrl.value.trim();
+      addLog('get', `Fetching status for payment ID: ${id}`);
+      
+      try {
+        const response = await fetch(`${baseUrl}/payment/${id}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        const status = response.status;
+        const data = await response.json();
+
+        if (response.ok) {
+          addLog('get', `Updated payment state for ${id}: ${data.status}`, false, status);
+          
+          // Update local cache
+          const idx = paymentsRegistry.findIndex(p => p.id === id);
+          if (idx > -1) {
+            paymentsRegistry[idx] = data;
+            renderRegistry();
+          }
+        } else {
+          addLog('error', `Failed to query payment: ${data.message || 'Error'}`, true, status);
+        }
+      } catch (err) {
+        addLog('error', `Connection error: ${err.message}`, true);
+      }
+    }
+
+    // Retry Payment (POST /payment/:id/retry)
+    async function retryPayment(id) {
+      const baseUrl = elBaseUrl.value.trim();
+      addLog('post', `Sending manual retry request for payment: ${id}`);
+
+      try {
+        const response = await fetch(`${baseUrl}/payment/${id}/retry`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        const status = response.status;
+        const data = await response.json();
+
+        if (response.ok) {
+          addLog('post', `Retry initiated. Payment transitioned to: ${data.status}`, false, status);
+          
+          // Force active state refresh
+          fetchPaymentStatus(id);
+        } else {
+          addLog('error', `Failed to initiate retry: ${data.message || 'Error'}`, true, status);
+        }
+      } catch (err) {
+        addLog('error', `Connection error: ${err.message}`, true);
+      }
+    }
+
+    // Webhook Dispatcher Simulator (POST /webhooks)
+    elBtnDispatchWebhook.addEventListener('click', async () => {
+      const paymentId = elWebhookPaymentId.value.trim();
+      const externalReferenceId = elWebhookRef.value.trim();
+      const status = elWebhookStatus.value;
+      const failureReason = elWebhookReason.value.trim();
+      const secret = elWebhookSecret.value;
+      const baseUrl = elBaseUrl.value.trim();
+
+      if (!paymentId) {
+        alert('Please provide a Target Payment ID');
+        return;
+      }
+      if (!externalReferenceId) {
+        alert('Please generate or specify an External Reference ID');
+        return;
+      }
+      if (!secret) {
+        alert('A Webhook Secret is required to generate the signature');
+        return;
+      }
+
+      // Find matching payment in local registry to copy currency/amount
+      const payment = paymentsRegistry.find(p => p.id === paymentId) || { amount: 50.00, currency: 'USD' };
+
+      // Prepare payload
+      const payload = {
+        event: 'payment.updated',
+        data: {
+          paymentId,
+          externalReferenceId,
+          status,
+          amount: payment.amount,
+          currency: payment.currency,
+          failureReason: status === 'FAILED' ? failureReason : undefined
+        }
+      };
+
+      const payloadString = JSON.stringify(payload);
+      
+      // Calculate HMAC SHA256 signature using CryptoJS
+      const hash = CryptoJS.HmacSHA256(payloadString, secret);
+      const signature = hash.toString(CryptoJS.enc.Hex);
+
+      elBtnDispatchWebhook.disabled = true;
+      elBtnDispatchWebhook.innerHTML = `<span class="spinner-small"></span> Dispatching...`;
+      addLog('webhook', `Dispatching simulated Webhook to server. Signature: ${signature.substring(0, 10)}...`);
+
+      try {
+        const rootUrl = baseUrl.substring(0, baseUrl.lastIndexOf('/api'));
+        const response = await fetch(`${rootUrl}/api/webhooks`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Gateway-Signature': signature
+          },
+          body: payloadString
+        });
+
+        const statusHttp = response.status;
+        const data = await response.json();
+
+        if (response.ok) {
+          addLog('webhook', `Webhook processed successfully by backend`, false, statusHttp);
+          // Query the payment to see immediate transition result
+          setTimeout(() => fetchPaymentStatus(paymentId), 500);
+          elWebhookRef.value = 'tx_' + generateUUID().replace(/-/g, '').substring(0, 16);
+        } else {
+          addLog('error', `Webhook rejected: ${data.message || 'Error'}`, true, statusHttp);
+        }
+      } catch (err) {
+        addLog('error', `Connection error: ${err.message}`, true);
+      } finally {
+        elBtnDispatchWebhook.disabled = false;
+        elBtnDispatchWebhook.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Dispatch Signed Webhook`;
+      }
+    });
+
+    // Auto-polling cycle
+    function startPolling() {
+      if (pollingInterval) clearInterval(pollingInterval);
+      
+      pollingInterval = setInterval(() => {
+        if (!elChkAutoPoll.checked) return;
+
+        // Check health of connection
+        checkApiHealth();
+
+        // Check state of any non-terminal payments in registry
+        const activePayments = paymentsRegistry.filter(p => 
+          p.status === 'PENDING' || p.status === 'PROCESSING' || p.status === 'RETRYING'
+        );
+
+        activePayments.forEach(p => {
+          fetchPaymentStatus(p.id);
+        });
+      }, 2500);
+    }
+
+    // Startup Loops
+    checkApiHealth();
+    startPolling();
+  </script>
+</body>
+</html>
