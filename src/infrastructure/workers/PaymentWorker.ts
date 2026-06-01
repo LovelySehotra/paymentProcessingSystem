@@ -11,17 +11,17 @@ import { IPaymentEvent, PaymentEvent } from '@/domain/models';
 import { CircuitBreaker } from '@/utils/circuit-breaker';
 import { PaymentGatewayAdapter } from '../gateway/PaymentGatewayAdapter';
 
-
-export const gatewayCircuitBreaker = new CircuitBreaker('payment-gateway', 3, 2, 10000);
+// 
+// export const gatewayCircuitBreaker = new CircuitBreaker('payment-gateway', 3, 2, 10000);
 // const paymentRepo = RepositoryFactory.createFull(Payment);
 
 export class PaymentWorker {
   private worker: Worker;
-  private  paymentRepo: IRepository<IPayment>;
+  private paymentRepo: IRepository<IPayment>;
   private queueService: QueueService;
   private paymentEventRepo: IRepository<IPaymentEvent>;
-  private gatewayCircuitBreaker: CircuitBreaker; 
-  private gatewayAdapter :  PaymentGatewayAdapter;
+  private gatewayCircuitBreaker: CircuitBreaker;
+  private gatewayAdapter: PaymentGatewayAdapter;
 
   constructor() {
     this.paymentRepo = RepositoryFactory.createFull(Payment);
@@ -40,7 +40,7 @@ export class PaymentWorker {
 
         try {
           const payment = await this.paymentRepo.withTransaction(async (session) => {
-            const lockedPayment = await this.paymentRepo.findById(paymentId, {session});
+            const lockedPayment = await this.paymentRepo.findById(paymentId, { session });
             if (!lockedPayment) {
               logger.error(`Payment ${paymentId} not found in worker.`, { paymentId, requestId });
               return null;
@@ -191,19 +191,19 @@ export class PaymentWorker {
         )
 
         await this.paymentEventRepo.create(
-          
-            {
-              paymentId: new mongoose.Types.ObjectId(paymentId),
-              fromStatus: 'PROCESSING',
-              toStatus: 'FAILED',
-              metadata: {
-                description: isRetryable
-                  ? `Max retries (${maxRetries}) exhausted. Final failure: ${failureReason}`
-                  : `Non-retryable failure: ${failureReason}`,
-                error: failureReason,
-              },
+
+          {
+            paymentId: new mongoose.Types.ObjectId(paymentId),
+            fromStatus: 'PROCESSING',
+            toStatus: 'FAILED',
+            metadata: {
+              description: isRetryable
+                ? `Max retries (${maxRetries}) exhausted. Final failure: ${failureReason}`
+                : `Non-retryable failure: ${failureReason}`,
+              error: failureReason,
             },
-        
+          },
+
           { session }
         );
       }

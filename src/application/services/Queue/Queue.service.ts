@@ -1,7 +1,6 @@
-import { REDIS_HOST, REDIS_PORT } from '@/config';
 import { logger } from '@/config/logger';
 import { getRedis } from '@/config/redis';
-import { Queue, ConnectionOptions } from 'bullmq';
+import { Queue } from 'bullmq';
 
 
 
@@ -18,8 +17,8 @@ export class QueueService {
       },
     });
 
-    this.paymentQueue.on('error', (err:any) => {
-    logger.error(`BullMQ Payment Queue Error: ${err.message}`, { error: err });
+    this.paymentQueue.on('error', (err: any) => {
+      logger.error(`BullMQ Payment Queue Error: ${err.message}`, { error: err });
     });
   }
 
@@ -35,6 +34,10 @@ export class QueueService {
       {
         delay: delayMs,
         jobId: `job_${paymentId}`,
+        // attempts: 1,
+        removeOnComplete: true,
+        removeOnFail: false,
+
       }
     );
   }
